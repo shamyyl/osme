@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
+console.log('running');
+
 var COMMAND_NAME = '';
 
 var RELATION_ID = '';
 var PARENT_ID = '';
 var ADMIN_LEVEL = 3;
-var EPSILON = 200;
+var EPSILON = 100;
 
 var options = process.argv.slice(2);
 
