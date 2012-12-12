@@ -4,28 +4,24 @@ console.log('running');
 
 var COMMAND_NAME = '';
 
-var RELATION_ID = '';
-var PARENT_ID = '';
-var ADMIN_LEVEL = 3;
-var EPSILON = 100;
+var COUNTRY='';
+var ADMIN_LEVEL = 2;
+var EPSILON = 50;
 
 var options = process.argv.slice(2);
 
 COMMAND_NAME = options.shift();
 
-if (['rel', 'subrel'].indexOf(COMMAND_NAME) === -1) {
+if (['scan', 'export'].indexOf(COMMAND_NAME) === -1) {
     console.log('Error: unknown command "' + COMMAND_NAME + '"');
-    process.exit(1);    
+    process.exit(1);
 }
 
 while (options.length > 0) {
     var v = options.shift();
     switch (v) {
-        case "-id":
-            RELATION_ID = options.shift().split(',');
-            break;
-        case "-p":
-            PARENT_ID = options.shift();
+        case "-country":
+            COUNTRY = options.shift().split(',');
             break;
         case "-al":
             ADMIN_LEVEL = options.shift();
@@ -53,19 +49,20 @@ while (options.length > 0) {
     }
 }
 
-if (COMMAND_NAME == 'rel') {
-    if (!RELATION_ID) {
-        console.log('Error: option \'id\' is required');
-        process.exit(1);
-    }
+var lib = require('./../lib');
 
-    require('./../lib').rel(RELATION_ID, EPSILON);
+if (COMMAND_NAME == 'scan') {
+    lib.scan({
+      adminLevel:ADMIN_LEVEL,
+      country: COUNTRY
+    }, function(){
+    lib.end();
+    });
 }
 
-if (COMMAND_NAME == 'subrel') {
-    if (!PARENT_ID) {
-        console.log('Error: option \'p\' is required');
-        process.exit(1);
-    }
-    require('./../lib').subrel(PARENT_ID, ADMIN_LEVEL, EPSILON);
+if (COMMAND_NAME == 'export') {
+    require('./../lib').export({
+      adminLevel:ADMIN_LEVEL,
+      country: COUNTRY
+    }, EPSILON);
 }
