@@ -7,8 +7,11 @@ var COMMAND_NAME = '';
 var COUNTRY='';
 var ADMIN_LEVEL = 2;
 var EPSILON = 50;
+var OUTPUTFILE = '../tmp-data/osme.json';
+var LANGUAGE = 'ru'
 
 var options = process.argv.slice(2);
+
 
 COMMAND_NAME = options.shift();
 
@@ -29,19 +32,24 @@ while (options.length > 0) {
         case "-e":
             EPSILON = options.shift();
             break;
+        case "-o":
+            OUTPUTFILE = options.shift();
+            break;
+        case "-lang":
+            LANGUAGE = options.shift();
+            break;
         case '-h':
         case '--help':
             console.log([
                 'Common options:',
-                '  -e              simplification epsilon [200]',
+                '  -al             administrative level [2]',
+                '  -country        top country',
                 'Command:',
-                '  rel             load relation by id',
-                '    options:',
-                '      -id         id',
-                '  subrel          load sub relation by parent relation id',
-                '    options:',
-                '      -p          parent releation id',
-                '      -al         admin_level for sub relation [3]',
+                '  scan            load relation',
+                '  export          generates json',
+                '    -o              output file name [osme.json]',
+                '    -e              simplification epsilon [200]',
+                '    -lang           exports language[ru]',
                 '  help            print this help'
             ].join('\n'));
             process.exit(1);
@@ -53,7 +61,7 @@ var lib = require('./../lib');
 
 if (COMMAND_NAME == 'scan') {
     lib.scan({
-      adminLevel:ADMIN_LEVEL,
+      adminLevel: ADMIN_LEVEL,
       country: COUNTRY
     }, function(){
     lib.end();
@@ -62,7 +70,12 @@ if (COMMAND_NAME == 'scan') {
 
 if (COMMAND_NAME == 'export') {
     require('./../lib').export({
-      adminLevel:ADMIN_LEVEL,
-      country: COUNTRY
-    }, EPSILON);
+      adminLevel: ADMIN_LEVEL,
+      country: COUNTRY,
+      epsilon: EPSILON,
+      file: OUTPUTFILE,
+      language: LANGUAGE
+    }, function(){
+      lib.end();
+    });
 }
