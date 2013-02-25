@@ -1,2 +1,13 @@
 Альфа версия.
 Конфиги настроены на работу с локальной MySql базой данных и виртуальным overpass.api (overpass-api.de)
+
+Usage
+node ./bin/osme scan -al LEVEL
+node ./bin/osme export -al LEVEL -e EPSILON [-country ParentID]
+
+
+
+Также можно заранее скачать пачку данных о путях
+/bin/sh ./tmp-data/prefetch/prefetch.sh
+node ./bin/osme prefetch admin1 и так далее
+Загрузка путей 6 и далее уровня может вызвать проблемы.
