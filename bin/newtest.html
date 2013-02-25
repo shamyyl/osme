@@ -5,9 +5,8 @@
     <title>Визуализатор данных регионов</title>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <script type="text/javascript"
-            src="http://api-maps.yandex.ru/2.0/?lang=ru-RU&load=package.full,util.math.bounds,util.coordinates.decode&mode=debug"></script>
+            src="http://api-maps.yandex.ru/2.0/?lang=ru-RU&load=package.full,util.jsonp,util.math.bounds,util.coordinates.decode&mode=debug"></script>
     <script type="text/javascript" src="regions.js"></script>
-    <script type="text/javascript" src="../tmp-data/osme.json"></script>
     <script type="text/javascript" src="http://yandex.st/jquery/1.8.2/jquery.min.js"></script>
 </head>
 
@@ -24,13 +23,41 @@
 </body>
 
 <script type="text/javascript">
-    ymaps.ready(function () {
-        var geoMap = new ymaps.Map('map', {
-            center: [0, 0],
-            type: "yandex#hybrid",
-            zoom: 2
-        });
 
+    var geoRegions = {};
+
+    function showWays () {
+        var j = 0;
+        for (var i in osme.ways) {
+            if (1 || i == 44090945) {
+                j++;
+                var coordinates = ymaps.util.coordinates.decode(osme.ways[i]);
+                var region = new ymaps.GeoObject({
+                    geometry: {
+                        //type: 'Polygon',
+                        type: 'LineString',
+                        fillRule: 'nonZero',
+                        coordinates: coordinates
+
+                        //coordinates: [geometry.coordinates[j]]
+                    },
+                    properties: {
+                        hintContent: i + ":" + coordinates.length
+                    }
+                }, {
+                    opacity: 0.5,
+                    fillColor: j % 2 ? '#0066ff' : '#ff0000',
+                    strokeColor: j % 2 ? '#FF0000' : '#0000ff',
+                    strokeWidth: 1
+
+                });
+                geoMap.geoObjects.add(region);
+            }
+        }
+    }
+
+    function regionPolylines () {
+        var j = 0;
         for (var i in osme.regions) {
             if (1 || i == 1428125) {
                 var geometry = regions.getGeometry(i, osme);
@@ -45,23 +72,24 @@
                                 dim = ymaps.util.math.bounds.dimension(bounds);
 
                         //console.log(j, dist, d, dim);
-                        if (d[0] < dim[0] * 0.5 && d[1] < dim[1] * 0.5) {
+                        if (1 || d[0] < dim[0] * 0.5 && d[1] < dim[1] * 0.5) {
                             var region = new ymaps.GeoObject({
                                 geometry: {
-                                    type: 'Polygon',
-                                    //type: 'LineString',
+                                    //type: 'Polygon',
+                                    type: 'LineString',
                                     fillRule: 'nonZero',
-                                    //coordinates: geometry.coordinates[j]
-                                    coordinates: [geometry.coordinates[j]]
+                                    coordinates: geometry.coordinates[j]
+                                    //coordinates: [geometry.coordinates[j]]
                                 },
                                 properties: {
                                     hintContent: i + ":" + j + ":" + osme.regions[i].name
                                 }
                             }, {
-                                opacity: 0.5,
+                                opacity: 0.8,
                                 fillColor: j % 2 ? '#0066ff' : '#ff0000',
-                                strokeColor: j % 2 ? '#ffff00' : '#00ffff',
-                                strokeWidth: 3
+                                strokeColor: j % 2 ? '#ff0000' : '#0000ff',
+                                strokeWidth: 1,
+                                pixelRendering: 'static'
                             });
                             geoMap.geoObjects.add(region);
 
@@ -72,6 +100,104 @@
                 }
             }
         }
+    }
+
+    function showRegions () {
+        var cnt = 0;
+        var j = 0;
+
+        for (var i in osme.regions) {
+            cnt++;
+            var geometry = regions.getGeometry(i, osme);
+            if (!geometry) {
+                console.log('no data for ', i);
+                continue;
+            }
+
+            var parents = [];
+            for (var j in osme.regions[i].parents) {
+                parents.push(osme.regions[i].parents[j].id);
+            }
+            parents = parents.join(', ');
+
+            var coordinates = [];
+            var region = new ymaps.GeoObject({
+                geometry: {
+                    type: 'Polygon',
+                    fillRule: 'nonZero',
+                    coordinates: geometry.coordinates
+                },
+                properties: {
+                    hintContent: cnt + "> " + i + ":" + j + ":" + osme.regions[i].name + ' < ' + parents
+                }
+            }, {
+                fillColor: j % 2 ? '#0066ff' : '#ff0000',
+                strokeColor: j % 2 ? '#ff0000' : '#0000ff',
+                strokeWidth: (8 - osme.regions[i].level) / 2,
+                opacity: 0.3,
+                zIndex: osme.regions[i].level,
+                zIndexHover: osme.regions[i].level
+                //simplification: false
+            });
+            geoMap.geoObjects.add(region);
+
+            geoRegions[i] = {
+                data: osme.regions[i],
+                object: region
+            };
+        }
+    }
+
+
+    var geoMap = 0;
+    ymaps.ready(function () {
+        geoMap = new ymaps.Map('map', {
+            center: [0, 0],
+            type: "yandex#hybrid",
+            zoom: 2
+        });
+
+        geoMap.controls.add('typeSelector');
+        geoMap.controls.add('searchControl');
+
+
+        var tm = 0;
+
+        function osmerequest (coordinates) {
+            ymaps.util.jsonp({
+                url: "http://localhost:8812/geocode?exlevel=6&point=" + coordinates.join(','),
+                checkResponse: false
+            }).then(function (res) {
+                        console.log(res, ':', res.hit ? res.trace[res.hit].name : 'none');
+                    });
+        }
+
+        geoMap.events.add('click', function (event) {
+            osmerequest(event.get('coordPosition'))
+        });
+
+        geoMap.geoObjects.events.add('click', function (event) {
+            osmerequest(event.get('coordPosition'))
+        });
+
+        var mode = 2;
+
+        regions.assignApi(ymaps);
+        regions.load('osme.json', '', function (data) {
+            window.osme = data;
+
+            switch (mode) {
+                case 0:
+                    showWays();
+                    break;
+                case 1:
+                    regionPolylines();
+                    break;
+                case 2:
+                    showRegions();
+                    break;
+            }
+        });
     });
 </script>
 </html>

@@ -7,19 +7,22 @@ var COMMAND_NAME = '';
 var COUNTRY='';
 var ADMIN_LEVEL = 2;
 var EPSILON = 50;
-var OUTPUTFILE = '../tmp-data/osme.json';
-var LANGUAGE = 'ru'
+var OUTPUTFILE = 'osme.json';
+var LANGUAGE = 'ru';
+var exportTags = false;
 
 var options = process.argv.slice(2);
 
 
+
 COMMAND_NAME = options.shift();
 
-if (['scan', 'export'].indexOf(COMMAND_NAME) === -1) {
+if (['scan', 'export','prefetch'].indexOf(COMMAND_NAME) === -1) {
     console.log('Error: unknown command "' + COMMAND_NAME + '"');
     process.exit(1);
 }
 
+var originalOptions = options.slice(0);
 while (options.length > 0) {
     var v = options.shift();
     switch (v) {
@@ -32,9 +35,16 @@ while (options.length > 0) {
         case "-e":
             EPSILON = options.shift();
             break;
+        case "-force":
+            require("./../lib/config.js").forceCountorUpdate=true;
+            break;
         case "-o":
             OUTPUTFILE = options.shift();
             break;
+        case "-with-tags":
+            exportTags = true;
+            break;
+
         case "-lang":
             LANGUAGE = options.shift();
             break;
@@ -57,6 +67,7 @@ while (options.length > 0) {
     }
 }
 
+var connection =require('./../lib/initConnection.js');
 var lib = require('./../lib');
 
 if (COMMAND_NAME == 'scan') {
@@ -64,9 +75,16 @@ if (COMMAND_NAME == 'scan') {
       adminLevel: ADMIN_LEVEL,
       country: COUNTRY
     }, function(){
-    lib.end();
+        connection.end();
     });
 }
+
+if (COMMAND_NAME == 'prefetch') {
+    require("./../lib/prefetch.js").load(originalOptions[0],function(){
+        connection.end();
+    });
+}
+
 
 if (COMMAND_NAME == 'export') {
     require('./../lib').export({
@@ -74,8 +92,9 @@ if (COMMAND_NAME == 'export') {
       country: COUNTRY,
       epsilon: EPSILON,
       file: OUTPUTFILE,
-      language: LANGUAGE
+      language: LANGUAGE,
+      withTags: exportTags
     }, function(){
-      lib.end();
+        connection.end();
     });
 }
